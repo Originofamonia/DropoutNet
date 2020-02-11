@@ -15,7 +15,7 @@ n_items = 1306054 + 1
 
 
 def main():
-    data_path = args.data_dir
+    data_path = "./eval/"
     checkpoint_path = args.checkpoint_path
     tb_log_path = args.tb_log_path
     model_select = args.model_select
@@ -130,7 +130,7 @@ def main():
                 n_targets = len(target_scores)
                 perm = np.random.permutation(n_targets)
                 n_targets = min(n_targets, max_data_per_step)
-                data_batch = [(n, min(n + data_batch_size, n_targets)) for n in xrange(0, n_targets, data_batch_size)]
+                data_batch = [(n, min(n + data_batch_size, n_targets)) for n in range(0, n_targets, data_batch_size)]
                 f_batch = 0
                 for (start, stop) in data_batch:
                     batch_perm = perm[start:stop]
@@ -258,7 +258,7 @@ def load_data(data_path):
 
     # load split
     timer.tic()
-    train = pd.read_csv(train_file, delimiter=",", header=-1, dtype=np.int32).values.ravel().view(
+    train = pd.read_csv(train_file, delimiter=",", header=None, dtype=np.int32).values.ravel().view(
         dtype=[('uid', np.int32), ('iid', np.int32), ('inter', np.int32), ('date', np.int32)])
     dat['user_indices'] = np.unique(train['uid'])
     timer.toc('read train triplets %s' % train.shape).tic()
@@ -277,7 +277,7 @@ def load_data(data_path):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Demo script to run DropoutNet on RecSys data",
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--data-dir', type=str, required=True, help='path to eval in the downloaded folder')
+    # parser.add_argument('--data-dir', type=str, required=True, help='path to eval in the downloaded folder')
 
     parser.add_argument('--model-device', type=str, default='/gpu:0', help='device to use for training')
     parser.add_argument('--inf-device', type=str, default='/cpu:0', help='device to use for inference')
