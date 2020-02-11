@@ -93,7 +93,7 @@ def main():
         train_writer = None if tb_log_path is None else tf.summary.FileWriter(
             tb_log_path + experiment, sess.graph)
         tf.global_variables_initializer().run()
-        tf.local_variables_initializer().run()
+        tf.compat.v1.local_variables_initializer().run()
         timer.toc('initialized tf')
 
         row_index = np.copy(user_indices)
@@ -126,7 +126,7 @@ def main():
                 target_items = np.append(target_items, target_items_rand)
                 target_users = np.append(target_users, target_users)
 
-                tf.local_variables_initializer().run()
+                tf.compat.v1.local_variables_initializer().run()
                 n_targets = len(target_scores)
                 perm = np.random.permutation(n_targets)
                 n_targets = min(n_targets, max_data_per_step)
@@ -170,6 +170,11 @@ def main():
                     _lr = _lr_decay * _lr
                     print('decayed lr:' + str(_lr))
                 if n_step % eval_every == 0:
+                    print(type(sess))
+                    print(type(dropout_net.eval_preds_warm))
+                    print(type(dropout_net.get_eval_dict))
+                    print(type(recall_at))
+                    print(type(eval_warm))
                     recall_warm = utils.batch_eval_recall(
                         sess, dropout_net.eval_preds_warm, eval_feed_dict=dropout_net.get_eval_dict,
                         recall_k=recall_at, eval_data=eval_warm)

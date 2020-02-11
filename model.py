@@ -202,7 +202,7 @@ class DeepCF:
             self.Vcontent: eval_data.V_content_test,
             self.phase: 0
         }
-        if self.Ucontent!=None: 
+        if self.Ucontent is not None:
             _eval_dict[self.Ucontent]= eval_data.U_content_test[_eval_start:_eval_finish, :]
         if not eval_data.is_cold:
             _eval_dict[self.eval_trainR] = eval_data.tf_eval_train[_i]
