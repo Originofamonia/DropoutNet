@@ -16,12 +16,12 @@ def dense_batch_fc_tanh(x, units, phase, scope, do_norm=False):
 
     with tf.variable_scope(scope):
         init = tf.truncated_normal_initializer(stddev=0.01)
-        h1_w = tf.get_variable(scope + '_w',
-                               shape=[x.get_shape().as_list()[1], units],
-                               initializer=init)
-        h1_b = tf.get_variable(scope + '_b',
-                               shape=[1, units],
-                               initializer=tf.zeros_initializer())
+        h1_w = tf.compat.v1.get_variable(scope + '_w',
+                                         shape=[x.get_shape().as_list()[1], units],
+                                         initializer=init)
+        h1_b = tf.compat.v1.get_variable(scope + '_b',
+                                         shape=[1, units],
+                                         initializer=tf.zeros_initializer())
         h1 = tf.matmul(x, h1_w) + h1_b
         if do_norm:
             h2 = tf.contrib.layers.batch_norm(
@@ -97,26 +97,26 @@ class DeepCF:
 
         Note: should use GPU
         """
-        self.lr_placeholder = tf.placeholder(tf.float32, shape=[], name='learn_rate')
-        self.phase = tf.placeholder(tf.bool, name='phase')
-        self.target = tf.placeholder(tf.float32, shape=[None], name='target')
+        self.lr_placeholder = tf.compat.v1.placeholder(tf.float32, shape=[], name='learn_rate')
+        self.phase = tf.compat.v1.placeholder(tf.bool, name='phase')
+        self.target = tf.compat.v1.placeholder(tf.float32, shape=[None], name='target')
 
-        self.Uin = tf.placeholder(tf.float32, shape=[None, self.rank_in], name='U_in_raw')
-        self.Vin = tf.placeholder(tf.float32, shape=[None, self.rank_in], name='V_in_raw')
-        if self.phi_u_dim>0:
-            self.Ucontent = tf.placeholder(tf.float32, shape=[None, self.phi_u_dim], name='U_content')
+        self.Uin = tf.compat.v1.placeholder(tf.float32, shape=[None, self.rank_in], name='U_in_raw')
+        self.Vin = tf.compat.v1.placeholder(tf.float32, shape=[None, self.rank_in], name='V_in_raw')
+        if self.phi_u_dim > 0:
+            self.Ucontent = tf.compat.v1.placeholder(tf.float32, shape=[None, self.phi_u_dim], name='U_content')
             u_concat = tf.concat([self.Uin, self.Ucontent], 1)
         else:
             u_concat = self.Uin
 
-        if self.phi_v_dim>0:
-            self.Vcontent = tf.placeholder(tf.float32, shape=[None, self.phi_v_dim], name='V_content')
+        if self.phi_v_dim > 0:
+            self.Vcontent = tf.compat.v1.placeholder(tf.float32, shape=[None, self.phi_v_dim], name='V_content')
             v_concat = tf.concat([self.Vin, self.Vcontent], 1)
         else:
             v_concat = self.Vin
 
-        print ('\tu_concat.shape=%s' % str(u_concat.get_shape()))
-        print ('\tv_concat.shape=%s' % str(v_concat.get_shape()))
+        print('\tu_concat.shape=%s' % str(u_concat.get_shape()))
+        print('\tv_concat.shape=%s' % str(v_concat.get_shape()))
 
         u_last = u_concat
         v_last = v_concat
@@ -125,8 +125,9 @@ class DeepCF:
             v_last = dense_batch_fc_tanh(v_last, hid, self.phase, 'item_layer_%d' % (ihid + 1), do_norm=True)
 
         with tf.variable_scope("self.U_embedding"):
-            u_emb_w = tf.Variable(tf.truncated_normal([u_last.get_shape().as_list()[1], self.rank_out], stddev=0.01),
-                                  name='u_emb_w')
+            u_emb_w = tf.Variable(
+                tf.random.truncated_normal([u_last.get_shape().as_list()[1], self.rank_out], stddev=0.01),
+                name='u_emb_w')
             u_emb_b = tf.Variable(tf.zeros([1, self.rank_out]), name='u_emb_b')
             self.U_embedding = tf.matmul(u_last, u_emb_w) + u_emb_b
 
@@ -139,12 +140,12 @@ class DeepCF:
         with tf.variable_scope("loss"):
             preds = tf.multiply(self.U_embedding, self.V_embedding)
             self.preds = tf.reduce_sum(preds, 1)
-            self.loss = tf.reduce_mean(tf.squared_difference(self.preds, self.target))
+            self.loss = tf.reduce_mean(tf.math.squared_difference(self.preds, self.target))
 
-        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        update_ops = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
             # Ensures that we execute the update_ops before performing the train_step
-            self.updates = tf.train.MomentumOptimizer(self.lr_placeholder, 0.9).minimize(self.loss)
+            self.updates = tf.compat.v1.train.MomentumOptimizer(self.lr_placeholder, 0.9).minimize(self.loss)
 
     def build_predictor(self, recall_at, num_candidates):
         """
@@ -157,7 +158,7 @@ class DeepCF:
         :param num_candidates: number of candidates
         :return:
         """
-        self.eval_trainR = tf.sparse_placeholder(
+        self.eval_trainR = tf.compat.v1.sparse_placeholder(
             dtype=tf.float32, shape=[None, None], name='trainR_sparse_CPU')
 
         with tf.variable_scope("eval"):
@@ -203,9 +204,9 @@ class DeepCF:
             self.phase: 0
         }
         if self.Ucontent is not None:
-            _eval_dict[self.Ucontent]= eval_data.U_content_test[_eval_start:_eval_finish, :]
+            _eval_dict[self.Ucontent] = eval_data.U_content_test[_eval_start:_eval_finish, :]
         if not eval_data.is_cold:
-            _eval_dict[self.eval_trainR] = eval_data.tf_eval_train[_i]
+            _eval_dict[self.eval_trainR] = eval_data.tf_eval_train[_i]   # this line has problem?
         return _eval_dict
 
     def get_eval_dict_latent(self, _i, _eval_start, _eval_finish, eval_data, u_pref, v_pref):

@@ -80,7 +80,7 @@ def main():
                                model_select=model_select,
                                rank_out=rank_out)
 
-    config = tf.ConfigProto(allow_soft_placement=True)
+    config = tf.compat.v1.ConfigProto(allow_soft_placement=True)
 
     with tf.device(args.model_device):
         dropout_net.build_model()
@@ -88,11 +88,11 @@ def main():
     with tf.device(args.inf_device):
         dropout_net.build_predictor(recall_at, n_scores_user)
 
-    with tf.Session(config=config) as sess:
+    with tf.compat.v1.Session(config=config) as sess:
         tf_saver = None if _tf_ckpt_file is None else tf.train.Saver()
         train_writer = None if tb_log_path is None else tf.summary.FileWriter(
             tb_log_path + experiment, sess.graph)
-        tf.global_variables_initializer().run()
+        tf.compat.v1.global_variables_initializer().run()
         tf.compat.v1.local_variables_initializer().run()
         timer.toc('initialized tf')
 
@@ -170,11 +170,6 @@ def main():
                     _lr = _lr_decay * _lr
                     print('decayed lr:' + str(_lr))
                 if n_step % eval_every == 0:
-                    print(type(sess))
-                    print(type(dropout_net.eval_preds_warm))
-                    print(type(dropout_net.get_eval_dict))
-                    print(type(recall_at))
-                    print(type(eval_warm))
                     recall_warm = utils.batch_eval_recall(
                         sess, dropout_net.eval_preds_warm, eval_feed_dict=dropout_net.get_eval_dict,
                         recall_k=recall_at, eval_data=eval_warm)
@@ -268,6 +263,8 @@ def load_data(data_path):
     dat['user_indices'] = np.unique(train['uid'])
     timer.toc('read train triplets %s' % train.shape).tic()
 
+    a = data.load_eval_data(test_warm_file, test_warm_iid_file, name='eval_warm', cold=False,
+                            train_data=train)
     dat['eval_warm'] = data.load_eval_data(test_warm_file, test_warm_iid_file, name='eval_warm', cold=False,
                                            train_data=train)
     dat['eval_cold_user'] = data.load_eval_data(test_cold_user_file, test_cold_user_iid_file, name='eval_cold_user',

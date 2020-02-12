@@ -130,7 +130,7 @@ class EvalData:
                 _ui = self.R_train_inf[eval_start:eval_finish, :].tocoo()
                 _ui = zip(_ui.row, _ui.col)
                 self.tf_eval_train.append(
-                    tf.SparseTensorValue(
+                    tf.compat.v1.SparseTensorValue(
                         indices=_ui,
                         values=np.full(len(list(_ui)), -100000, dtype=np.float32),
                         dense_shape=[eval_finish - eval_start, self.R_train_inf.shape[1]]
