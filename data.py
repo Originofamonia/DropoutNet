@@ -128,7 +128,7 @@ class EvalData:
         if not self.is_cold:
             for (eval_start, eval_finish) in self.eval_batch:
                 _ui = self.R_train_inf[eval_start:eval_finish, :].tocoo()
-                _ui = np.vstack((_ui.row, _ui.col))
+                _ui = np.vstack((_ui.row, _ui.col)).transpose()
                 self.tf_eval_train.append(
                     tf.compat.v1.SparseTensorValue(
                         indices=_ui,  # indices shouldn't be zip
