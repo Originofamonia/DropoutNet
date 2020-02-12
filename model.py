@@ -14,7 +14,7 @@ def dense_batch_fc_tanh(x, units, phase, scope, do_norm=False):
     do_norm: boolean flag to do batch norm after FC
     """
 
-    with tf.variable_scope(scope):
+    with tf.compat.v1.variable_scope(scope):
         init = tf.truncated_normal_initializer(stddev=0.01)
         h1_w = tf.compat.v1.get_variable(scope + '_w',
                                          shape=[x.get_shape().as_list()[1], units],
@@ -124,20 +124,20 @@ class DeepCF:
             u_last = dense_batch_fc_tanh(u_last, hid, self.phase, 'user_layer_%d' % (ihid + 1), do_norm=True)
             v_last = dense_batch_fc_tanh(v_last, hid, self.phase, 'item_layer_%d' % (ihid + 1), do_norm=True)
 
-        with tf.variable_scope("self.U_embedding"):
+        with tf.compat.v1.variable_scope("self.U_embedding"):
             u_emb_w = tf.Variable(
                 tf.random.truncated_normal([u_last.get_shape().as_list()[1], self.rank_out], stddev=0.01),
                 name='u_emb_w')
             u_emb_b = tf.Variable(tf.zeros([1, self.rank_out]), name='u_emb_b')
             self.U_embedding = tf.matmul(u_last, u_emb_w) + u_emb_b
 
-        with tf.variable_scope("V_embedding"):
-            v_emb_w = tf.Variable(tf.truncated_normal([v_last.get_shape().as_list()[1], self.rank_out], stddev=0.01),
+        with tf.compat.v1.variable_scope("V_embedding"):
+            v_emb_w = tf.Variable(tf.random.truncated_normal([v_last.get_shape().as_list()[1], self.rank_out], stddev=0.01),
                                   name='v_emb_w')
             v_emb_b = tf.Variable(tf.zeros([1, self.rank_out]), name='v_emb_b')
             self.V_embedding = tf.matmul(v_last, v_emb_w) + v_emb_b
 
-        with tf.variable_scope("loss"):
+        with tf.compat.v1.variable_scope("loss"):
             preds = tf.multiply(self.U_embedding, self.V_embedding)
             self.preds = tf.reduce_sum(preds, 1)
             self.loss = tf.reduce_mean(tf.math.squared_difference(self.preds, self.target))
@@ -168,10 +168,10 @@ class DeepCF:
                                                   name='topK_net_cold')
             _, self.eval_preds_warm = tf.nn.top_k(embedding_prod_warm, k=recall_at[-1], sorted=True,
                                                   name='topK_net_warm')
-        with tf.variable_scope("select_targets"):
-            self.U_pref_tf = tf.placeholder(tf.float32, shape=[None, self.rank_in], name='u_pref')
-            self.V_pref_tf = tf.placeholder(tf.float32, shape=[None, self.rank_in], name='v_pref')
-            self.rand_target_ui = tf.placeholder(tf.int32, shape=[None, None], name='rand_target_ui')
+        with tf.compat.v1.variable_scope("select_targets"):
+            self.U_pref_tf = tf.compat.v1.placeholder(tf.float32, shape=[None, self.rank_in], name='u_pref')
+            self.V_pref_tf = tf.compat.v1.placeholder(tf.float32, shape=[None, self.rank_in], name='v_pref')
+            self.rand_target_ui = tf.compat.v1.placeholder(tf.int32, shape=[None, None], name='rand_target_ui')
             preds_pref = tf.matmul(self.U_pref_tf, self.V_pref_tf, transpose_b=True)
             tf_topk_vals, tf_topk_inds = tf.nn.top_k(preds_pref, k=num_candidates, sorted=True, name='top_targets')
             self.tf_topk_vals = tf.reshape(tf_topk_vals, [-1], name='select_y_vals')
@@ -206,7 +206,7 @@ class DeepCF:
         if self.Ucontent is not None:
             _eval_dict[self.Ucontent] = eval_data.U_content_test[_eval_start:_eval_finish, :]
         if not eval_data.is_cold:
-            _eval_dict[self.eval_trainR] = eval_data.tf_eval_train[_i]   # this line has problem?
+            _eval_dict[self.eval_trainR] = eval_data.tf_eval_train[_i]   # tf_eval_train can't be zip
         return _eval_dict
 
     def get_eval_dict_latent(self, _i, _eval_start, _eval_finish, eval_data, u_pref, v_pref):
